@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Gran Laberinto del Queso Matemático</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Carga de Tone.js para efectos de sonido -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7e9d7; /* Color de fondo suave */
+        }
+        /* Estilos específicos para el tablero y fichas, ajustados para Tailwind */
+        .board-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 5 columnas para el tablero */
+            gap: 8px; /* Espacio entre casillas */
+            width: 100%;
+            max-width: 600px; /* Ancho máximo del tablero */
+            background-color: #d1c4b3; /* Fondo del tablero */
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .board-square {
+            display: flex;
+            flex-direction: column; /* Apilar contenido verticalmente */
+            justify-content: center;
+            align-items: center;
+            min-height: 80px; /* Altura mínima para las casillas */
+            background-color: #fff;
+            border: 2px solid #a1887f; /* Borde de casilla */
+            border-radius: 8px;
+            font-weight: bold;
+            color: #5d4037;
+            text-align: center;
+            position: relative; /* Para posicionar las fichas */
+            overflow: hidden; /* Ocultar contenido que se desborde */
+        }
+        .board-square img {
+            width: 70%; /* Tamaño de la imagen dentro de la casilla */
+            height: 70%;
+            object-fit: contain; /* Ajustar imagen sin distorsionar */
+            margin-bottom: 4px; /* Espacio entre imagen y texto */
+        }
+        .board-square span {
+            font-size: 0.8rem; /* Tamaño de la fuente para el texto de la casilla */
+        }
+        .player-token {
+            position: absolute;
+            width: 28px; /* Tamaño de la ficha */
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 0.7rem;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease-in-out; /* Transición suave para el movimiento */
+        }
+        /* Colores de las fichas */
+        .player-token.player-0 { background-color: #e57373; } /* Rojo */
+        .player-token.player-1 { background-color: #81c784; } /* Verde */
+        .player-token.player-2 { background-color: #64b5f6; } /* Azul */
+        .player-token.player-3 { background-color: #ffb74d; } /* Naranja */
+
+        /* Estilos para el modal personalizado */
+        .custom-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .custom-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            animation: fadeInScale 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeInScale {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        /* Estilo para el temporizador */
+        #timer-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #d32f2f; /* Rojo oscuro */
+            margin-bottom: 1rem;
+            animation: pulse 1s infinite alternate; /* Animación de pulsación */
+        }
+        @keyframes pulse {
+            from { transform: scale(1); opacity: 1; }
+            to { transform: scale(1.05); opacity: 0.8; }
+        }
+
+        /* Estilos específicos para la secuencia de memoria */
+        #memory-sequence-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-f7e9d7 text-gray-800 flex flex-col items-center p-4 min-h-screen">
+
+    <h1 class="text-4xl font-bold text-orange-700 mb-6 text-center">El Gran Laberinto del Queso Matemático</h1>
+    <p class="text-lg text-center max-w-2xl mb-8">¡Ayuda a Sniff, Scurry, Hem y Haw a encontrar el Queso Fresco, usando tus habilidades matemáticas para superar los obstáculos del laberinto!</p>
+
+    <!-- Contenedor principal del juego para alinear el tablero y el panel de control -->
+    <div class="flex flex-col md:flex-row w-full max-w-screen-xl items-start md:justify-between">
+
+        <!-- Área del tablero de juego (se centrará automáticamente dentro de su espacio) -->
+        <div class="game-board-area flex-grow flex justify-center w-full md:w-2/3 lg:w-3/4 order-2 md:order-1">
+            <div id="game-board" class="board-container">
+                <!-- Las casillas se generarán con JavaScript -->
+            </div>
+        </div>
+
+        <!-- Área de información del juego y controles (Panel Derecho) -->
+        <div class="control-panel-area w-full md:w-1/3 lg:w-1/4 p-4 order-1 md:order-2 flex justify-end">
+            <div class="bg-white p-4 rounded-xl shadow-lg w-full max-w-xs flex flex-col items-end">
+                <div class="flex justify-end items-center mb-2 w-full">
+                    <span class="text-lg font-semibold mr-2">Turno de: <span id="current-player-name" class="text-orange-600"></span></span>
+                    <span class="text-lg font-semibold">Dado: <span id="dice-roll" class="text-blue-600">--</span></span>
+                </div>
+                <button id="roll-dice-btn" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition duration-300 transform hover:scale-105 shadow-md">
+                    Lanzar Dado
+                </button>
+                <div id="player-positions" class="mt-2 text-xs text-right w-full">
+                    <!-- Las posiciones de los jugadores se actualizarán aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para preguntas/mensajes -->
+    <div id="custom-modal" class="custom-modal">
+        <div class="modal-content">
+            <h2 id="modal-title" class="text-3xl font-bold mb-4 text-orange-700"></h2>
+            <!-- Elemento para mostrar el temporizador -->
+            <div id="timer-display" class="hidden"></div>
+            <!-- Elemento para la secuencia de memoria -->
+            <div id="memory-sequence-display" class="hidden"></div>
+            <p id="modal-message" class="text-lg mb-6"></p>
+            <div id="question-input-area" class="hidden">
+                <input type="text" id="answer-input" class="w-full p-3 border border-gray-300 rounded-lg mb-4 text-center text-lg focus:ring-2 focus:ring-yellow-500" placeholder="Escribe tu respuesta aquí">
+                <button id="submit-answer-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-md">
+                    Responder
+                </button>
+            </div>
+            <div id="challenge-options-area" class="hidden">
+                 <button id="challenge-option-a" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-md mb-2 w-full">Opción A</button>
+                 <button id="challenge-option-b" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-md w-full">Opción B</button>
+            </div>
+            <div id="scurry-challenge-feedback" class="hidden">
+                <button id="scurry-correct-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-md mb-2 w-full">Correcto</button>
+                <button id="scurry-incorrect-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-md w-full">Incorrecto</button>
+            </div>
+            <button id="modal-close-btn" class="hidden bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg mt-4 transition duration-300 transform hover:scale-105 shadow-md">
+                Cerrar
+            </button>
+             <button id="next-turn-btn" class="hidden bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg mt-4 transition duration-300 transform hover:scale-105 shadow-md">
+                Siguiente Turno
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        // Global Tone.js objects
+        let mainSynth;
+        let voiceSynth;
+        let audioContextStarted = false; // Flag to ensure context starts on first interaction
+
+        // Array de preguntas de matemáticas (5º básico)
+        const mathQuestions = [
+            // Preguntas originales
+            { q: "¿Cuánto es 345 x 23?", a: 7935, type: 'multiplication' },
+            { q: "Si tienes 780 canicas y las guardas en 12 bolsas, ¿cuántas canicas hay en cada bolsa?", a: 65, type: 'division' },
+            { q: "Calcula: (120 ÷ 10) + (8 x 6).", a: 60, type: 'combined' },
+            { q: "¿Qué número falta en la secuencia: 7, 14, 21, __, 35?", a: 28, type: 'sequence' },
+            { q: "Si el precio de un libro es $5.990 y pagas con un billete de $10.000, ¿cuánto vuelto recibes?", a: 4010, type: 'subtraction' },
+            { q: "Transforma la fracción 3/5 a decimal.", a: 0.6, type: 'fractionToDecimal' },
+            { q: "Si tienes 1/2 de una torta y te comes 1/4 de ella, ¿qué fracción de la torta te queda? (Responde como fracción simplificada, ej: 1/4)", a: "1/4", type: 'fractionSubtraction' },
+            { q: "¿Cuánto es 2/3 de 90?", a: 60, type: 'fractionOfNumber' },
+            { q: "Ordena de mayor a menor: 0.8, 3/4, 0.7, 4/5. (Responde los números separados por comas, ej: 0.8,0.8,0.75,0.7)", a: "0.8,0.8,0.75,0.7", type: 'orderDecimalsFractions' },
+            { q: "Si un paquete de galletas pesa 0.25 kg, ¿cuántos gramos son?", a: 250, type: 'measurement' },
+            { q: "¿Cuántos vértices tiene un cubo?", a: 8, type: 'geometry' },
+            { q: "Si un rectángulo tiene un largo de 12 cm y un ancho de 5 cm, ¿cuál es su área en cm²?", a: 60, type: 'geometryArea' },
+            { q: "¿Cuántos centímetros cuadrados son 2 metros cuadrados?", a: 20000, type: 'measurementArea' },
+            { q: "¿Cuál es la medida de un ángulo recto?", a: 90, type: 'geometryAngle' },
+            { q: "Si un viaje dura 2 horas y 45 minutos, ¿cuántos minutos son en total?", a: 165, type: 'timeMeasurement' },
+
+            // Preguntas añadidas anteriormente
+            { q: "Calcula el resultado de 1.5 + 3.75.", a: 5.25, type: 'decimalAddition' },
+            { q: "Si un tren viaja a 80 km/h, ¿qué distancia recorrerá en 3.5 horas?", a: 280, type: 'speedDistance' },
+            { q: "Encuentra el valor de 'x' en la ecuación: x + 18 = 50.", a: 32, type: 'algebraSimple' },
+            { q: "Un círculo tiene un radio de 7 cm. ¿Cuál es su diámetro?", a: 14, type: 'geometryRadius' },
+            { q: "Si tienes 1/5 de pastel y tu amigo te da 2/5 más, ¿cuánta parte del pastel tienes ahora? (Responde como fracción simplificada, ej: 3/5)", a: "3/5", type: 'fractionAddition' },
+            { q: "Un bidón contiene 4.5 litros de agua. ¿Cuántos mililitros son?", a: 4500, type: 'measurementVolume' },
+            { q: "Si el perímetro de un cuadrado es de 36 cm, ¿cuánto mide cada uno de sus lados?", a: 9, type: 'geometryPerimeter' },
+            { q: "Convierte 2.5 metros a centímetros.", a: 250, type: 'measurementLength' },
+            { q: "¿Cuál es el valor de 0.75 multiplicado por 100?", a: 75, type: 'decimalMultiplication' },
+            { q: "Si compras 3 cuadernos a $850 cada uno, ¿cuánto gastas en total?", a: 2550, type: 'multiplicationMoney' },
+            { q: "Un paquete de galletas tiene 24 unidades. Si 1/3 de ellas son de chocolate, ¿cuántas galletas de chocolate hay?", a: 8, type: 'fractionOfNumber' },
+            { q: "Calcula: 200 - (15 x 5).", a: 125, type: 'combined' },
+            { q: "Si una caja de lápices trae 12 lápices y quieres 72 lápices, ¿cuántas cajas necesitas comprar?", a: 6, type: 'divisionContext' },
+            { q: "Transforma la fracción 7/10 a decimal.", a: 0.7, type: 'fractionToDecimal' },
+            { q: "¿Qué tipo de ángulo mide entre 90 y 180 grados?", a: "obtuso", type: 'geometryAngleType' },
+
+            // ¡Más preguntas para 5º Básico! (Incluidas las nuevas y las anteriores)
+            { q: "Si una receta pide 0.5 kg de harina y ya tienes 0.25 kg, ¿cuánta harina te falta?", a: 0.25, type: 'decimalSubtraction' },
+            { q: "Calcula el volumen de una caja que mide 4 cm de largo, 3 cm de ancho y 5 cm de alto. (Responde en cm³)", a: 60, type: 'volume' },
+            { q: "Si 5 amigos se reparten 150 galletas de forma equitativa, ¿cuántas galletas recibe cada uno?", a: 30, type: 'divisionWordProblem' },
+            { q: "Expresa como fracción simplificada: 0.75", a: "3/4", type: 'decimalToFraction' },
+            { q: "¿Cuál es el promedio de los siguientes números: 10, 15, 20?", a: 15, type: 'average' },
+            { q: "Un ángulo agudo mide menos de 90 grados. ¿Verdadero o Falso?", a: "Verdadero", type: 'trueFalseAngle' },
+            { q: "Si un vaso tiene una capacidad de 200 ml, ¿cuántos vasos puedes llenar con una botella de 1 litro?", a: 5, type: 'measurementCapacity' },
+            { q: "Multiplica 2.5 por 4.", a: 10, type: 'decimalMultiplicationSimple' },
+            { q: "Un libro cuesta $8.000. Si tiene un 50% de descuento, ¿cuánto cuesta ahora?", a: 4000, type: 'percentage' },
+            { q: "En un gráfico de barras, ¿qué eje representa la cantidad o frecuencia?", a: "vertical", type: 'dataInterpretation' },
+            { q: "Si tienes 4/8 de una pizza, ¿cuál es la fracción equivalente más simple?", a: "1/2", type: 'fractionSimplification' },
+            { q: "En la secuencia 1, 4, 9, 16, __, ¿qué número sigue?", a: 25, type: 'sequenceSquares' },
+            { q: "Un triángulo tiene ángulos de 60°, 70°. ¿Cuánto mide el tercer ángulo?", a: 50, type: 'geometryTriangleAngles' },
+            { q: "Si una piscina tiene 10 metros de largo y 5 metros de ancho, ¿cuál es su área? (Responde en m²)", a: 50, type: 'geometryArea' },
+            { q: "¿Cuántos segundos hay en 5 minutos?", a: 300, type: 'timeConversion' },
+
+            // Nuevas preguntas de 5º básico adicionales
+            { q: "Si un autobús sale a las 8:30 a.m. y llega a su destino a las 10:15 a.m., ¿cuánto tiempo duró el viaje?", a: "1 hora y 45 minutos", type: 'timeDuration' },
+            { q: "Una panadería hornea 120 panes en una hora. ¿Cuántos panes horneará en 3 horas?", a: 360, type: 'multiplicationRate' },
+            { q: "Si 1/3 de los estudiantes de una clase de 30 son niñas, ¿cuántas niñas hay en la clase?", a: 10, type: 'fractionOfSet' },
+            { q: "Calcula: 4.8 - 2.35.", a: 2.45, type: 'decimalSubtraction' },
+            { q: "¿Cuál es el factor común más grande entre 12 y 18?", a: 6, type: 'gcf' },
+            { q: "Si el lado de un octágono regular mide 5 cm, ¿cuál es su perímetro?", a: 40, type: 'geometryPerimeterRegularPolygon' },
+            { q: "En un mapa, 1 cm representa 10 km. Si dos ciudades están separadas por 5 cm en el mapa, ¿cuál es la distancia real entre ellas?", a: 50, type: 'scale' },
+            { q: "¿Cuánto es 1/4 de 200?", a: 50, type: 'fractionOfNumber' },
+            { q: "Si tienes $7.500 y quieres comprar libros que cuestan $2.500 cada uno, ¿cuántos libros puedes comprar?", a: 3, type: 'divisionMoney' },
+            { q: "Encuentra el número que falta: 5, 10, 15, __, 25.", a: 20, type: 'sequenceArithmetic' },
+            { q: "¿Cuál es la fracción irreducible de 6/9?", a: "2/3", type: 'fractionSimplification' },
+            { q: "Si la temperatura es de 12°C y baja 5°C, ¿cuál es la nueva temperatura?", a: 7, type: 'integerSubtraction' },
+            { q: "Un ángulo llano mide 180 grados. ¿Verdadero o Falso?", a: "Verdadero", type: 'trueFalseAngle' },
+            { q: "Calcula: (50 + 25) ÷ 5.", a: 15, type: 'combined' },
+            { q: "Si un reloj marca las 3:00 p.m., ¿qué hora será 4 horas y 30 minutos después?", a: "7:30 p.m.", type: 'timeAddition' },
+            { q: "Un jardín tiene forma de triángulo con una base de 10 m y una altura de 8 m. ¿Cuál es su área? (Responde en m²)", a: 40, type: 'geometryAreaTriangle' },
+            { q: "Completa la serie: 2, 4, 8, __, 32.", a: 16, type: 'sequenceGeometric' },
+            { q: "Si una entrada al cine cuesta $3.200, ¿cuánto pagarán 4 personas?", a: 12800, type: 'multiplicationMoney' },
+            { q: "Expresa 0.2 como fracción simplificada.", a: "1/5", type: 'decimalToFraction' },
+            { q: "¿Cuál es el múltiplo común más pequeño entre 3 y 5?", a: 15, type: 'lcm' }
+        ];
+
+        // Definición de las casillas del tablero con imágenes
+        const gameBoard = [
+            { id: 0, type: 'start', label: 'Inicio', img: 'https://placehold.co/80x80/64dd17/ffffff?text=INICIO' },
+            { id: 1, type: 'safe', label: 'Paso 1', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+1' },
+            { id: 2, type: 'question', label: 'Matemáticas', img: 'https://placehold.co/80x80/42a5f5/ffffff?text=? ' },
+            { id: 3, type: 'safe', label: 'Paso 3', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+3' },
+            { id: 4, type: 'challenge', label: 'Desafío', img: 'https://placehold.co/80x80/ef5350/ffffff?text=! ' },
+            { id: 5, type: 'safe', label: 'Paso 5', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+5' },
+            { id: 6, type: 'question', label: 'Matemáticas', img: 'https://placehold.co/80x80/42a5f5/ffffff?text=? ' },
+            { id: 7, type: 'safe', label: 'Paso 7', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+7' },
+            { id: 8, type: 'challenge', label: 'Desafío', img: 'https://placehold.co/80x80/ef5350/ffffff?text=! ' },
+            { id: 9, type: 'question', label: 'Matemáticas', img: 'https://placehold.co/80x80/42a5f5/ffffff?text=? ' },
+            { id: 10, type: 'safe', label: 'Paso 10', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+10' },
+            { id: 11, type: 'question', label: 'Matemáticas', img: 'https://placehold.co/80x80/42a5f5/ffffff?text=? ' },
+            { id: 12, type: 'challenge', label: 'Desafío', img: 'https://placehold.co/80x80/ef5350/ffffff?text=! ' },
+            { id: 13, type: 'safe', label: 'Paso 13', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+13' },
+            { id: 14, type: 'question', label: 'Matemáticas', img: 'https://placehold.co/80x80/42a5f5/ffffff?text=? ' },
+            { id: 15, type: 'safe', label: 'Paso 15', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+15' },
+            { id: 16, type: 'challenge', label: 'Desafío', img: 'https://placehold.co/80x80/ef5350/ffffff?text=! ' },
+            { id: 17, type: 'question', label: 'Matemáticas', img: 'https://placehold.co/80x80/42a5f5/ffffff?text=? ' },
+            { id: 18, type: 'safe', label: 'Paso 18', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+18' },
+            { id: 19, type: 'question', label: 'Matemáticas', img: 'https://placehold.co/80x80/42a5f5/ffffff?text=? ' },
+            { id: 20, type: 'safe', label: 'Paso 20', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+20' },
+            { id: 21, type: 'challenge', label: 'Desafío', img: 'https://placehold.co/80x80/ef5350/ffffff?text=! ' },
+            { id: 22, type: 'question', label: 'Matemáticas', img: 'https://placehold.co/80x80/42a5f5/ffffff?text=? ' },
+            { id: 23, type: 'safe', label: 'Paso 23', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+23' },
+            { id: 24, type: 'question', label: 'Matemáticas', img: 'https://placehold.co/80x80/42a5f5/ffffff?text=? ' },
+            { id: 25, type: 'safe', label: 'Paso 25', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+25' },
+            { id: 26, type: 'challenge', label: 'Desafío', img: 'https://placehold.co/80x80/ef5350/ffffff?text=! ' },
+            { id: 27, type: 'safe', label: 'Paso 27', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+27' },
+            { id: 28, type: 'question', label: 'Matemáticas', img: 'https://placehold.co/80x80/42a5f5/ffffff?text=? ' },
+            { id: 29, type: 'safe', label: 'Paso 29', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+29' },
+            { id: 30, type: 'challenge', label: 'Desafío', img: 'https://placehold.co/80x80/ef5350/ffffff?text=! ' },
+            { id: 31, type: 'safe', label: 'Paso 31', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+31' },
+            { id: 32, type: 'question', label: 'Matemáticas', img: 'https://placehold.co/80x80/42a5f5/ffffff?text=? ' },
+            { id: 33, type: 'safe', label: 'Paso 33', img: 'https://placehold.co/80x80/ffffff/000000?text=Paso+33' },
+            { id: 34, type: 'end', label: 'Queso Fresco', img: 'https://placehold.co/80x80/ffd600/ffffff?text=QUESO' } // La nueva casilla final
+        ];
+
+        // Jugadores del juego
+        const players = [
+            { name: 'Sniff', position: 0, color: '#e57373' }, // Rojo
+            { name: 'Scurry', position: 0, color: '#81c784' }, // Verde
+            { name: 'Hem', position: 0, color: '#64b5f6' },   // Azul
+            { name: 'Haw', position: 0, color: '#ffb74d' }    // Naranja
+        ];
+
+        let currentTurn = 0; // Índice del jugador actual
+        let diceRoll = 0;
+        let waitingForAnswer = false; // Para controlar si estamos esperando una respuesta en una pregunta directa
+        let waitingForChallengeChoice = false; // Para desafíos con opciones (Haw)
+        let currentChallengeType = ''; // Para saber qué tipo de desafío se está resolviendo
+        let hemBlockedPlayerIndex = -1; // Almacena el índice del jugador Hem que está bloqueado
+        let timerInterval; // Variable para almacenar el intervalo del temporizador
+        let rapidCalcCurrentQuestion = 0; // Para el nuevo desafío de cálculo rápido
+        let rapidCalcCorrectAnswers = 0; // Para el nuevo desafío de cálculo rápido
+        let memorySequence = []; // Para el nuevo desafío de memoria
+
+        // Elementos del DOM
+        const gameBoardDiv = document.getElementById('game-board');
+        const rollDiceBtn = document.getElementById('roll-dice-btn');
+        const currentPlayerNameSpan = document.getElementById('current-player-name');
+        const diceRollSpan = document.getElementById('dice-roll');
+        const playerPositionsDiv = document.getElementById('player-positions');
+
+        // Elementos del modal personalizado
+        const customModal = document.getElementById('custom-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const timerDisplay = document.getElementById('timer-display'); // Elemento para mostrar el temporizador
+        const memorySequenceDisplay = document.getElementById('memory-sequence-display'); // Nuevo elemento para la secuencia de memoria
+        const modalMessage = document.getElementById('modal-message');
+        const questionInputArea = document.getElementById('question-input-area');
+        const answerInput = document.getElementById('answer-input');
+        const submitAnswerBtn = document.getElementById('submit-answer-btn');
+        const challengeOptionsArea = document.getElementById('challenge-options-area');
+        const challengeOptionA = document.getElementById('challenge-option-a');
+        const challengeOptionB = document.getElementById('challenge-option-b');
+        const scurryChallengeFeedback = document.getElementById('scurry-challenge-feedback');
+        const scurryCorrectBtn = document.getElementById('scurry-correct-btn');
+        const scurryIncorrectBtn = document.getElementById('scurry-incorrect-btn');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const nextTurnBtn = document.getElementById('next-turn-btn');
+
+        // Inicialización de Tone.js Synths
+        window.addEventListener('load', () => {
+            mainSynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: {
+                    type: "triangle"
+                },
+                envelope: {
+                    attack: 0.005,
+                    decay: 0.1,
+                    sustain: 0.3,
+                    release: 1
+                }
+            }).toDestination();
+
+            voiceSynth = new Tone.FMSynth({
+                harmonicity: 3.0,
+                modulationIndex: 10,
+                oscillator: {
+                    type: "sine"
+                },
+                envelope: {
+                    attack: 0.01,
+                    decay: 0.2,
+                    sustain: 0.1,
+                    release: 0.5
+                },
+                modulation: {
+                    type: "square"
+                },
+                modulationEnvelope: {
+                    attack: 0.2,
+                    decay: 0.01,
+                    sustain: 1,
+                    release: 0.1
+                }
+            }).toDestination();
+        });
+
+        /**
+         * Plays a sound effect based on type.
+         * @param {string} type - 'safe', 'challenge', 'victory'.
+         */
+        async function playSound(type) {
+            // Iniciar el contexto de audio de Tone.js con la primera interacción del usuario
+            if (!audioContextStarted) {
+                await Tone.start();
+                audioContextStarted = true;
+            }
+
+            if (type === 'safe') {
+                mainSynth.triggerAttackRelease(["C4", "E4", "G4"], "8n"); // Tono agradable y ascendente
+                voiceSynth.triggerAttackRelease("G4", "0.2", Tone.now(), 0.5); // Sonido de 'voz' corto
+            } else if (type === 'challenge') {
+                mainSynth.triggerAttackRelease(["C3", "F#3"], "4n"); // Tono disonante y dramático
+                voiceSynth.triggerAttackRelease("C3", "0.4", Tone.now(), 0.7); // Sonido de 'voz' grave y sostenido
+            } else if (type === 'victory') {
+                const now = Tone.now();
+                mainSynth.triggerAttackRelease("C5", "8n", now);
+                mainSynth.triggerAttackRelease("E5", "8n", now + 0.15);
+                mainSynth.triggerAttackRelease("G5", "8n", now + 0.3);
+                mainSynth.triggerAttackRelease("C6", "4n", now + 0.45);
+            }
+        }
+
+        /**
+         * Inicializa el tablero de juego y las fichas de los jugadores.
+         */
+        function initializeGame() {
+            gameBoardDiv.innerHTML = ''; // Limpiar tablero
+            // Crear las casillas del tablero
+            gameBoard.forEach(square => {
+                const squareDiv = document.createElement('div');
+                squareDiv.id = `square-${square.id}`;
+                squareDiv.className = 'board-square';
+
+                const img = document.createElement('img');
+                img.src = square.img;
+                img.alt = square.label;
+                // Fallback para imágenes
+                img.onerror = function() { this.src = 'https://placehold.co/80x80/cccccc/000000?text=Error'; };
+
+                const labelSpan = document.createElement('span');
+                labelSpan.textContent = square.label;
+
+                squareDiv.appendChild(img);
+                squareDiv.appendChild(labelSpan);
+                gameBoardDiv.appendChild(squareDiv);
+            });
+
+            // Crear y posicionar las fichas de los jugadores
+            players.forEach((player, index) => {
+                const token = document.createElement('div');
+                token.id = `player-${index}-token`;
+                token.className = `player-token player-${index}`;
+                token.textContent = player.name[0]; // Inicial del nombre
+                // Asegurarse de que la ficha esté en la casilla de inicio
+                const startSquare = document.getElementById(`square-${player.position}`);
+                if (startSquare) {
+                    startSquare.appendChild(token);
+                }
+            });
+
+            updateGameInfo(); // Actualizar la información inicial
+            rollDiceBtn.disabled = false; // Habilitar el botón de lanzar dado
+        }
+
+        /**
+         * Actualiza la información en pantalla (turno actual, posiciones).
+         */
+        function updateGameInfo() {
+            currentPlayerNameSpan.textContent = players[currentTurn].name;
+            diceRollSpan.textContent = diceRoll === 0 ? '--' : diceRoll;
+
+            playerPositionsDiv.innerHTML = 'Posiciones: ';
+            players.forEach(player => {
+                playerPositionsDiv.innerHTML += `<span class="font-bold mr-2">${player.name}: <span style="color: ${player.color};">${player.position}</span></span>`;
+            });
+        }
+
+        /**
+         * Muestra un mensaje en el modal personalizado y configura los botones.
+         * @param {string} title - Título del modal.
+         * @param {string} message - Mensaje a mostrar.
+         * @param {string} buttonType - 'next' para siguiente turno, 'close' para cerrar.
+         */
+        function showModal(title, message, buttonType = 'next') {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            timerDisplay.classList.add('hidden'); // Ocultar temporizador por defecto
+            memorySequenceDisplay.classList.add('hidden'); // Ocultar display de secuencia
+            questionInputArea.classList.add('hidden');
+            challengeOptionsArea.classList.add('hidden');
+            scurryChallengeFeedback.classList.add('hidden');
+
+            modalCloseBtn.classList.add('hidden');
+            nextTurnBtn.classList.add('hidden');
+
+            if (buttonType === 'next') {
+                nextTurnBtn.classList.remove('hidden');
+                modalCloseBtn.classList.add('hidden'); // Asegurarse de que el botón de cerrar esté oculto
+            } else if (buttonType === 'close') {
+                modalCloseBtn.classList.remove('hidden');
+                nextTurnBtn.classList.add('hidden'); // Asegurarse de que el botón de siguiente turno esté oculto
+            }
+
+            customModal.classList.add('show');
+            rollDiceBtn.disabled = true; // Deshabilitar el botón de dado mientras el modal está activo
+        }
+
+        /**
+         * Oculta el modal personalizado y resetea el estado.
+         */
+        function hideModal() {
+            clearInterval(timerInterval); // Asegurarse de detener el temporizador al cerrar el modal
+            customModal.classList.remove('show');
+            answerInput.value = ''; // Limpiar input
+            nextTurnBtn.classList.add('hidden');
+            modalCloseBtn.classList.add('hidden'); // Asegurarse de que el botón de cerrar esté oculto
+            rollDiceBtn.disabled = false; // Re-habilitar el botón de dado
+            waitingForAnswer = false;
+            waitingForChallengeChoice = false;
+            currentChallengeType = ''; // Resetear el tipo de desafío
+            rapidCalcCurrentQuestion = 0; // Resetear contador de preguntas rápidas
+            rapidCalcCorrectAnswers = 0; // Resetear respuestas correctas de cálculo rápido
+            memorySequence = []; // Resetear secuencia de memoria
+            updateGameInfo(); // Asegurarse de que la información esté actualizada
+        }
+
+        /**
+         * Lanza el dado y mueve al jugador.
+         */
+        function rollDice() {
+            if (waitingForAnswer || waitingForChallengeChoice || customModal.classList.contains('show')) {
+                // No lanzar dado si ya hay un modal abierto o se está esperando una interacción
+                return;
+            }
+
+            diceRoll = Math.floor(Math.random() * 6) + 1;
+            diceRollSpan.textContent = diceRoll;
+            rollDiceBtn.disabled = true; // Deshabilitar el botón mientras se procesa el turno
+
+            movePlayer(currentTurn, diceRoll);
+        }
+
+        /**
+         * Mueve la ficha de un jugador a una nueva posición.
+         * @param {number} playerIndex - Índice del jugador.
+         * @param {number} steps - Número de casillas a mover.
+         */
+        function movePlayer(playerIndex, steps) {
+            const player = players[playerIndex];
+            let newPosition = player.position + steps;
+
+            // Asegurarse de que no se pase del final del tablero
+            if (newPosition >= gameBoard.length - 1) {
+                newPosition = gameBoard.length - 1;
+            }
+
+            player.position = newPosition;
+            const token = document.getElementById(`player-${playerIndex}-token`);
+            // Mover la ficha al nuevo cuadrado
+            const targetSquare = document.getElementById(`square-${newPosition}`);
+            if (targetSquare) {
+                targetSquare.appendChild(token);
+            }
+
+            // Una pequeña pausa para que la ficha se mueva visualmente
+            setTimeout(() => {
+                handleSquare(playerIndex, gameBoard[newPosition].type);
+            }, 500);
+        }
+
+        /**
+         * Maneja lo que sucede al caer en una casilla específica.
+         * @param {number} playerIndex - Índice del jugador actual.
+         * @param {string} squareType - Tipo de la casilla ('safe', 'question', 'challenge', 'end').
+         */
+        function handleSquare(playerIndex, squareType) {
+            const player = players[playerIndex];
+
+            if (squareType === 'safe') {
+                playSound('safe'); // Añadir efecto de sonido de casilla segura
+                showModal('Casilla Segura', '¡Uf! Estás a salvo por ahora. Avanza al siguiente turno.', 'next');
+            } else if (squareType === 'question') {
+                showQuestion(playerIndex);
+            } else if (squareType === 'challenge') {
+                showChallenge(playerIndex);
+            } else if (squareType === 'end') {
+                showModal('¡Felicidades!', `${player.name} ha encontrado el Queso Fresco y ha ganado el juego!`, 'close');
+                triggerVictoryEffect(); // ¡Activar el efecto de victoria!
+                rollDiceBtn.disabled = true; // Deshabilitar dado permanentemente
+            }
+        }
+
+        /**
+         * Muestra una pregunta de matemáticas en el modal.
+         * @param {number} playerIndex - Índice del jugador actual que debe responder.
+         * @param {boolean} isHemQuestion - Si es una pregunta para el desafío de Hem.
+         */
+        function showQuestion(playerIndex, isHemQuestion = false) {
+            waitingForAnswer = true;
+            const questionData = mathQuestions[Math.floor(Math.random() * mathQuestions.length)];
+
+            modalTitle.textContent = isHemQuestion ? `Desafío Hem (Ayuda a ${players[hemBlockedPlayerIndex].name})` : 'Pregunta de Matemáticas';
+            modalMessage.textContent = questionData.q;
+            timerDisplay.classList.add('hidden'); // Asegurarse de que el temporizador esté oculto
+            memorySequenceDisplay.classList.add('hidden'); // Ocultar display de secuencia
+            questionInputArea.classList.remove('hidden');
+            challengeOptionsArea.classList.add('hidden');
+            scurryChallengeFeedback.classList.add('hidden');
+            modalCloseBtn.classList.add('hidden');
+            nextTurnBtn.classList.add('hidden');
+
+            // Asegurarse de que el input esté limpio
+            answerInput.value = '';
+            answerInput.focus(); // Enfocar el input para que el usuario pueda escribir
+
+            submitAnswerBtn.onclick = () => checkAnswer(playerIndex, questionData.a, isHemQuestion);
+            customModal.classList.add('show');
+            rollDiceBtn.disabled = true; // Deshabilitar el dado
+        }
+
+        /**
+         * Verifica la respuesta a la pregunta.
+         * @param {number} playerIndex - Índice del jugador que respondió (puede ser el jugador actual o el que ayuda a Hem).
+         * @param {*} correctAnswer - La respuesta correcta.
+         * @param {boolean} isHemQuestion - Si es una pregunta para el desafío de Hem.
+         * @param {boolean} timedOut - Si la respuesta fue debido a un tiempo agotado (para Sniff).
+         */
+        function checkAnswer(playerIndex, correctAnswer, isHemQuestion, timedOut = false) {
+            clearInterval(timerInterval); // Detener el temporizador si está corriendo
+            const userAnswer = answerInput.value.trim();
+            let isCorrect = false;
+
+            if (timedOut) {
+                isCorrect = false; // Si el tiempo se agotó, es incorrecta
+            } else if (typeof correctAnswer === 'number') {
+                isCorrect = parseFloat(userAnswer) === correctAnswer;
+            } else if (typeof correctAnswer === 'string' && correctAnswer.includes('/')) {
+                isCorrect = userAnswer === correctAnswer;
+            } else if (typeof correctAnswer === 'string' && correctAnswer.includes(',')) {
+                const userArray = userAnswer.split(',').map(s => s.trim());
+                const correctArray = String(correctAnswer).split(',').map(s => s.trim());
+
+                const userNumericArray = userArray.map(s => {
+                    if (s.includes('/')) {
+                        const parts = s.split('/').map(Number);
+                        return parts[0] / parts[1];
+                    }
+                    return parseFloat(s);
+                }).sort((a, b) => b - a);
+
+                const correctNumericArray = correctArray.map(s => {
+                    if (s.includes('/')) {
+                        const parts = s.split('/').map(Number);
+                        return parts[0] / parts[1];
+                    }
+                    return parseFloat(s);
+                }).sort((a, b) => b - a);
+
+                isCorrect = JSON.stringify(userNumericArray) === JSON.stringify(correctNumericArray);
+
+            } else {
+                isCorrect = userAnswer.toLowerCase() === String(correctAnswer).toLowerCase();
+            }
+
+            questionInputArea.classList.add('hidden'); // Ocultar el área de input después de responder
+
+            if (isCorrect) {
+                showModal('¡Correcto!', '¡Excelente! Tu respuesta es correcta.', 'next');
+                if (isHemQuestion) {
+                    players[hemBlockedPlayerIndex].position++; // Ayuda a Hem a avanzar 1 casilla
+                    const token = document.getElementById(`player-${hemBlockedPlayerIndex}-token`);
+                    document.getElementById(`square-${players[hemBlockedPlayerIndex].position}`).appendChild(token);
+                    showModal('¡Ayuda Exitosa!', `¡Excelente! ${players[hemBlockedPlayerIndex].name} pudo avanzar una casilla gracias a tu ayuda.`, 'next');
+                    hemBlockedPlayerIndex = -1; // Hem ya no está bloqueado
+                } else if (currentChallengeType === 'Sniff') {
+                    // Si es un desafío Sniff y fue correcto, avanza extra
+                    showModal('¡Éxito Sniff!', `${players[playerIndex].name} avanza 1 casilla extra.`, 'next');
+                    players[playerIndex].position = Math.min(gameBoard.length - 1, players[playerIndex].position + 1);
+                    const token = document.getElementById(`player-${playerIndex}-token`);
+                    document.getElementById(`square-${players[playerIndex].position}`).appendChild(token);
+                } else if (currentChallengeType === 'Memory') {
+                    showModal('¡Memoria Perfecta!', `${players[playerIndex].name} recordó la secuencia correctamente y avanza 3 casillas.`, 'next');
+                    players[playerIndex].position = Math.min(gameBoard.length - 1, players[playerIndex].position + 3);
+                    const token = document.getElementById(`player-${playerIndex}-token`);
+                    document.getElementById(`square-${players[playerIndex].position}`).appendChild(token);
+                } else if (currentChallengeType === 'RapidCalc') {
+                    // La lógica de movimiento para RapidCalc se maneja al final de showRapidCalcQuestion
+                }
+            } else {
+                const playerToMove = isHemQuestion ? players[hemBlockedPlayerIndex] : players[currentTurn];
+                playerToMove.position = Math.max(0, playerToMove.position - 2);
+                const token = document.getElementById(`player-${isHemQuestion ? hemBlockedPlayerIndex : currentTurn}-token`);
+                document.getElementById(`square-${playerToMove.position}`).appendChild(token);
+
+                if (timedOut && currentChallengeType === 'Sniff') {
+                    showModal('¡Tiempo Agotado!', `¡Oh no! El tiempo se agotó. ${players[playerIndex].name} pierde su próximo turno.`, 'next');
+                } else if (isHemQuestion) {
+                    showModal('¡Intenta de Nuevo!', `Fallaste en ayudar a ${players[hemBlockedPlayerIndex].name}. Él sigue atascado.`, 'next');
+                } else if (currentChallengeType === 'Memory') {
+                    showModal('¡Memoria Fallida!', `${players[playerIndex].name} no recordó la secuencia. Retrocede 2 casillas.`, 'next');
+                } else if (currentChallengeType === 'RapidCalc') {
+                    // La lógica de movimiento para RapidCalc se maneja al final de showRapidCalcQuestion
+                } else {
+                    showModal('¡Incorrecto!', `La respuesta correcta era ${correctAnswer}. ¡Oh no! ${players[currentTurn].name} retrocede 2 casillas.`, 'next');
+                }
+            }
+            waitingForAnswer = false; // Ya no esperamos respuesta
+            updateGameInfo();
+        }
+
+        /**
+         * Inicia un temporizador visual.
+         * @param {number} durationInSeconds - Duración del temporizador en segundos.
+         * @param {function} onTimerEnd - Función a ejecutar cuando el temporizador llega a cero.
+         */
+        function startTimer(durationInSeconds, onTimerEnd) {
+            let timeLeft = durationInSeconds;
+            timerDisplay.textContent = timeLeft;
+            timerDisplay.classList.remove('hidden');
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.classList.add('hidden'); // Ocultar el temporizador
+                    onTimerEnd(); // Llamar a la función de fin de temporizador
+                }
+            }, 1000);
+        }
+
+        /**
+         * Muestra un desafío en el modal.
+         * Se elige un desafío al azar entre Sniff, Scurry, Haw, Hem, Fortune, Riddle, Memory, RapidCalc.
+         * @param {number} playerIndex - Índice del jugador actual.
+         */
+        function showChallenge(playerIndex) {
+            playSound('challenge'); // Añadir efecto de sonido de desafío
+            const challenges = ['Sniff', 'Scurry', 'Haw', 'Hem', 'Fortune', 'Riddle', 'Memory', 'RapidCalc']; // Añadidos nuevos desafíos
+            const randomChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+            currentChallengeType = randomChallenge; // Guardar el tipo de desafío
+
+            modalCloseBtn.classList.add('hidden');
+            nextTurnBtn.classList.add('hidden');
+            questionInputArea.classList.add('hidden');
+            challengeOptionsArea.classList.add('hidden');
+            scurryChallengeFeedback.classList.add('hidden');
+            timerDisplay.classList.add('hidden'); // Asegurarse de que el temporizador esté oculto
+            memorySequenceDisplay.classList.add('hidden'); // Ocultar display de secuencia
+
+            if (randomChallenge === 'Sniff') {
+                const num1 = Math.floor(Math.random() * 500) + 100;
+                const num2 = Math.floor(Math.random() * 400) + 50;
+                const operation = Math.random() < 0.5 ? '+' : '-';
+                const question = `Desafío Sniff: Resuelve mentalmente en 15 segundos: ${num1} ${operation} ${num2} = ?`;
+                const correctAnswer = operation === '+' ? num1 + num2 : num1 - num2;
+
+                modalTitle.textContent = '¡Desafío Sniff!';
+                modalMessage.textContent = question;
+                questionInputArea.classList.remove('hidden'); // Mostrar input para respuesta
+
+                startTimer(15, () => {
+                    // Esta función se ejecuta cuando el temporizador llega a cero
+                    checkAnswer(playerIndex, correctAnswer, false, true); // Marcar como tiempo agotado
+                });
+
+                submitAnswerBtn.onclick = () => {
+                    clearInterval(timerInterval); // Detener el temporizador si responde antes
+                    checkAnswer(playerIndex, correctAnswer, false, false);
+                };
+            } else if (randomChallenge === 'Scurry') {
+                const number = Math.floor(Math.random() * 50) + 20; // Número entre 20 y 70
+                modalTitle.textContent = '¡Desafío Scurry!';
+                modalMessage.textContent = `Desafío Scurry: Di todas las divisiones exactas posibles para ${number} en 20 segundos (ej. ${number} ÷ 1, ${number} ÷ 2...). Cuando hayas terminado, otro jugador presiona Correcto/Incorrecto.`;
+                scurryChallengeFeedback.classList.remove('hidden'); // Mostrar botones de feedback
+
+                scurryCorrectBtn.onclick = () => {
+                    showModal('¡Éxito Scurry!', `${players[playerIndex].name} avanza 2 casillas.`, 'next');
+                    players[playerIndex].position = Math.min(gameBoard.length - 1, players[playerIndex].position + 2);
+                    const token = document.getElementById(`player-${playerIndex}-token`);
+                    document.getElementById(`square-${players[playerIndex].position}`).appendChild(token);
+                    updateGameInfo();
+                };
+                scurryIncorrectBtn.onclick = () => {
+                    showModal('¡Falló Scurry!', `${players[playerIndex].name} retrocede 1 casilla.`, 'next');
+                    players[playerIndex].position = Math.max(0, players[playerIndex].position - 1);
+                    const token = document.getElementById(`player-${playerIndex}-token`);
+                    document.getElementById(`square-${players[playerIndex].position}`).appendChild(token);
+                    updateGameInfo();
+                };
+            } else if (randomChallenge === 'Haw') {
+                waitingForChallengeChoice = true;
+                modalTitle.textContent = '¡Desafío Haw: Elige el Cambio!';
+                modalMessage.textContent = `Estás en una bifurcación.
+                Camino A (Arriesgado): Es más corto, pero tiene dos preguntas de matemáticas seguidas. Si respondes ambas correctamente, avanzas 3 casillas adicionales.
+                Camino B (Seguro): Es más largo, pero no tiene preguntas adicionales. Avanzas normalmente.
+                Elige con sabiduría.`;
+                challengeOptionsArea.classList.remove('hidden'); // Mostrar opciones de Haw
+
+                challengeOptionA.textContent = 'Elegir Camino A (Arriesgado)';
+                challengeOptionB.textContent = 'Elegir Camino B (Seguro)';
+
+                challengeOptionA.onclick = () => {
+                    waitingForChallengeChoice = false;
+                    showModal('¡Camino A elegido!', 'Prepárate para las dos preguntas...', 'next');
+                    // Retraso para que el mensaje se vea antes de la primera pregunta
+                    setTimeout(() => {
+                        showHawDoubleQuestion(playerIndex, 0, 0); // Iniciar la primera pregunta
+                    }, 1500);
+                };
+                challengeOptionB.onclick = () => {
+                    waitingForChallengeChoice = false;
+                    showModal('¡Camino B elegido!', 'Avanzas normalmente.', 'next');
+                    // No hay movimiento extra, el turno simplemente termina
+                    updateGameInfo();
+                };
+
+            } else if (randomChallenge === 'Hem') {
+                hemBlockedPlayerIndex = playerIndex; // Almacena el índice del jugador Hem que está bloqueado
+                modalTitle.textContent = '¡Desafío Hem!';
+                modalMessage.textContent = `${players[playerIndex].name} se ha quedado "atascado" como Hem. Pierde su próximo turno y necesita la ayuda de otro jugador para poder moverse.`;
+                showModal('¡Desafío Hem!', modalMessage.textContent, 'next');
+                // El turno se pasa normalmente, pero Hem sigue bloqueado
+            } else if (randomChallenge === 'Fortune') { // Nuevo desafío: Suerte del Laberinto
+                const stepsChange = Math.floor(Math.random() * 9) - 4; // Entre -4 y +4 pasos
+                let message = '';
+                if (stepsChange > 0) {
+                    message = `¡Suerte del Laberinto! ${players[playerIndex].name} avanza ${stepsChange} casillas.`;
+                } else if (stepsChange < 0) {
+                    message = `¡Desafío del Laberinto! ${players[playerIndex].name} retrocede ${Math.abs(stepsChange)} casillas.`;
+                } else {
+                    message = `¡Suerte Neutra! ${players[playerIndex].name} se queda en su lugar.`;
+                }
+                showModal('¡Suerte del Laberinto!', message, 'next');
+                players[playerIndex].position = Math.min(gameBoard.length - 1, Math.max(0, players[playerIndex].position + stepsChange));
+                const token = document.getElementById(`player-${playerIndex}-token`);
+                document.getElementById(`square-${players[playerIndex].position}`).appendChild(token);
+                updateGameInfo();
+            } else if (randomChallenge === 'Riddle') { // Nuevo desafío: Acertijo de la Esfinge
+                // Reutilizamos la lógica de showQuestion para un acertijo
+                const questionData = mathQuestions[Math.floor(Math.random() * mathQuestions.length)]; // Elige una pregunta al azar
+                modalTitle.textContent = '¡Acertijo de la Esfinge!';
+                modalMessage.textContent = `Resuelve este acertijo matemático: ${questionData.q}`;
+                questionInputArea.classList.remove('hidden');
+                submitAnswerBtn.onclick = () => checkAnswer(playerIndex, questionData.a, false); // No es pregunta de Hem
+                customModal.classList.add('show');
+                rollDiceBtn.disabled = true;
+                answerInput.value = '';
+                answerInput.focus();
+            } else if (randomChallenge === 'Memory') { // Nuevo desafío: Memoria del Queso
+                startMemoryChallenge(playerIndex);
+            } else if (randomChallenge === 'RapidCalc') { // Nuevo desafío: Cálculo Rápido
+                startRapidCalcChallenge(playerIndex);
+            }
+            customModal.classList.add('show');
+            rollDiceBtn.disabled = true; // Deshabilitar el dado
+        }
+
+        /**
+         * Maneja las dos preguntas seguidas del desafío Haw.
+         * @param {number} playerIndex - Índice del jugador actual.
+         * @param {number} questionCount - Cuántas preguntas se han hecho (0 o 1).
+         * @param {number} correctAnswers - Cuántas respuestas correctas se llevan.
+         */
+        function showHawDoubleQuestion(playerIndex, questionCount, correctAnswers) {
+            if (questionCount < 2) {
+                const questionData = mathQuestions[Math.floor(Math.random() * mathQuestions.length)];
+                modalTitle.textContent = `Desafío Haw (Pregunta ${questionCount + 1} de 2)`;
+                modalMessage.textContent = questionData.q;
+                questionInputArea.classList.remove('hidden');
+                challengeOptionsArea.classList.add('hidden');
+                scurryChallengeFeedback.classList.add('hidden');
+                timerDisplay.classList.add('hidden'); // Asegurarse de que el temporizador esté oculto
+                memorySequenceDisplay.classList.add('hidden'); // Ocultar display de secuencia
+                modalCloseBtn.classList.add('hidden');
+                nextTurnBtn.classList.add('hidden');
+                answerInput.value = ''; // Limpiar input
+                answerInput.focus();
+
+                submitAnswerBtn.onclick = () => {
+                    const userAnswer = answerInput.value.trim();
+                    let isCorrect = false;
+
+                    if (typeof questionData.a === 'number') {
+                        isCorrect = parseFloat(userAnswer) === questionData.a;
+                    } else if (typeof questionData.a === 'string' && questionData.a.includes('/')) {
+                        isCorrect = userAnswer === questionData.a;
+                    } else if (typeof questionData.a === 'string' && questionData.a.includes(',')) {
+                        const userArray = userAnswer.split(',').map(s => s.trim());
+                        const correctArray = String(questionData.a).split(',').map(s => s.trim());
+
+                        const userNumericArray = userArray.map(s => {
+                            if (s.includes('/')) {
+                                const parts = s.split('/').map(Number);
+                                return parts[0] / parts[1];
+                            }
+                            return parseFloat(s);
+                        }).sort((a, b) => b - a);
+
+                        const correctNumericArray = correctArray.map(s => {
+                            if (s.includes('/')) {
+                                const parts = s.split('/').map(Number);
+                                return parts[0] / parts[1];
+                            }
+                            return parseFloat(s);
+                        }).sort((a, b) => b - a);
+
+                        isCorrect = JSON.stringify(userNumericArray) === JSON.stringify(correctNumericArray);
+                    } else {
+                        isCorrect = userAnswer.toLowerCase() === String(questionData.a).toLowerCase();
+                    }
+
+                    questionInputArea.classList.add('hidden'); // Ocultar input inmediatamente
+
+                    if (isCorrect) {
+                        correctAnswers++;
+                        modalMessage.textContent = '¡Correcto! Preparándote para la siguiente pregunta...';
+                    } else {
+                        modalMessage.textContent = `¡Incorrecto! La respuesta correcta era ${questionData.a}.`;
+                    }
+
+                    setTimeout(() => {
+                        showHawDoubleQuestion(playerIndex, questionCount + 1, correctAnswers);
+                    }, 1500); // Pequeña pausa antes de la siguiente pregunta o resultado final
+                };
+            } else {
+                // Todas las preguntas de Haw respondidas
+                if (correctAnswers === 2) {
+                    showModal('¡Éxito Haw!', `${players[playerIndex].name} respondió ambas correctamente y avanza 3 casillas adicionales.`, 'next');
+                    players[playerIndex].position = Math.min(gameBoard.length - 1, players[playerIndex].position + 3);
+                    const token = document.getElementById(`player-${playerIndex}-token`);
+                    document.getElementById(`square-${players[playerIndex].position}`).appendChild(token);
+                } else {
+                    showModal('¡Desafío Haw Fallido!', `${players[playerIndex].name} no respondió ambas correctamente. No hay avance extra.`, 'next');
+                }
+                updateGameInfo();
+            }
+        }
+
+        /**
+         * Inicia el desafío de Memoria del Queso.
+         * @param {number} playerIndex - Índice del jugador actual.
+         */
+        function startMemoryChallenge(playerIndex) {
+            modalTitle.textContent = '¡Memoria del Queso!';
+            modalMessage.textContent = 'Observa la secuencia de números y luego escríbela.';
+            memorySequenceDisplay.classList.remove('hidden');
+            questionInputArea.classList.add('hidden'); // Ocultar input por ahora
+
+            // Generar una secuencia aleatoria de 4 números del 1 al 9
+            memorySequence = Array.from({ length: 4 }, () => Math.floor(Math.random() * 9) + 1);
+            memorySequenceDisplay.textContent = memorySequence.join(' '); // Mostrar la secuencia
+
+            setTimeout(() => {
+                memorySequenceDisplay.classList.add('hidden'); // Ocultar la secuencia
+                modalMessage.textContent = 'Ahora, escribe la secuencia que viste (números separados por espacio):';
+                questionInputArea.classList.remove('hidden'); // Mostrar input
+                answerInput.value = '';
+                answerInput.focus();
+                submitAnswerBtn.onclick = () => checkMemoryAnswer(playerIndex);
+            }, 3000); // Mostrar por 3 segundos
+        }
+
+        /**
+         * Verifica la respuesta al desafío de Memoria.
+         * @param {number} playerIndex - Índice del jugador actual.
+         */
+        function checkMemoryAnswer(playerIndex) {
+            const userAnswer = answerInput.value.trim().split(' ').map(Number);
+            const isCorrect = JSON.stringify(userAnswer) === JSON.stringify(memorySequence);
+
+            if (isCorrect) {
+                showModal('¡Correcto!', `¡Memoria asombrosa! ${players[playerIndex].name} avanza 3 casillas.`, 'next');
+                players[playerIndex].position = Math.min(gameBoard.length - 1, players[playerIndex].position + 3);
+                const token = document.getElementById(`player-${playerIndex}-token`);
+                document.getElementById(`square-${players[playerIndex].position}`).appendChild(token);
+            } else {
+                showModal('¡Incorrecto!', `¡Uhm, no! La secuencia correcta era ${memorySequence.join(' ')}. ${players[playerIndex].name} retrocede 2 casillas.`, 'next');
+                players[playerIndex].position = Math.max(0, players[playerIndex].position - 2);
+                const token = document.getElementById(`player-${playerIndex}-token`);
+                document.getElementById(`square-${players[playerIndex].position}`).appendChild(token);
+            }
+            updateGameInfo();
+        }
+
+        /**
+         * Inicia el desafío de Cálculo Rápido (series de 3 preguntas).
+         * @param {number} playerIndex - Índice del jugador actual.
+         */
+        function startRapidCalcChallenge(playerIndex) {
+            rapidCalcCurrentQuestion = 0;
+            rapidCalcCorrectAnswers = 0;
+            showRapidCalcQuestion(playerIndex);
+        }
+
+        /**
+         * Muestra una pregunta del desafío de Cálculo Rápido.
+         * @param {number} playerIndex - Índice del jugador actual.
+         */
+        function showRapidCalcQuestion(playerIndex) {
+            if (rapidCalcCurrentQuestion < 3) {
+                rapidCalcCurrentQuestion++;
+                const num1 = Math.floor(Math.random() * 20) + 1; // Números más pequeños para rapidez
+                const num2 = Math.floor(Math.random() * 10) + 1;
+                const operation = ['+', '-', 'x'][Math.floor(Math.random() * 3)];
+                let correctAnswer;
+                let questionText;
+
+                if (operation === '+') {
+                    correctAnswer = num1 + num2;
+                    questionText = `${num1} + ${num2} = ?`;
+                } else if (operation === '-') {
+                    correctAnswer = num1 - num2;
+                    questionText = `${num1} - ${num2} = ?`;
+                } else { // 'x'
+                    correctAnswer = num1 * num2;
+                    questionText = `${num1} x ${num2} = ?`;
+                }
+
+                modalTitle.textContent = `Cálculo Rápido (Pregunta ${rapidCalcCurrentQuestion} de 3)`;
+                modalMessage.textContent = questionText;
+                questionInputArea.classList.remove('hidden');
+                answerInput.value = '';
+                answerInput.focus();
+
+                submitAnswerBtn.onclick = () => {
+                    const userAnswer = parseFloat(answerInput.value.trim());
+                    if (userAnswer === correctAnswer) {
+                        rapidCalcCorrectAnswers++;
+                        modalMessage.textContent = `¡Correcto! Siguiente pregunta...`;
+                    } else {
+                        modalMessage.textContent = `¡Incorrecto! La respuesta era ${correctAnswer}. Siguiente pregunta...`;
+                    }
+                    questionInputArea.classList.add('hidden'); // Ocultar input inmediatamente
+                    setTimeout(() => showRapidCalcQuestion(playerIndex), 1000); // Pausa antes de la siguiente pregunta
+                };
+            } else {
+                // Todas las preguntas respondidas
+                let stepsChange = rapidCalcCorrectAnswers - (3 - rapidCalcCorrectAnswers); // Aciertos - Errores
+                let finalMessage = `Has respondido ${rapidCalcCorrectAnswers} de 3 correctamente.`;
+                if (stepsChange > 0) {
+                    finalMessage += ` ¡Avanzas ${stepsChange} casillas!`;
+                } else if (stepsChange < 0) {
+                    finalMessage += ` ¡Retrocedes ${Math.abs(stepsChange)} casillas!`;
+                } else {
+                    finalMessage += ` Te quedas en tu lugar.`;
+                }
+
+                showModal('¡Cálculo Rápido Completado!', finalMessage, 'next');
+                players[playerIndex].position = Math.min(gameBoard.length - 1, Math.max(0, players[playerIndex].position + stepsChange));
+                const token = document.getElementById(`player-${playerIndex}-token`);
+                document.getElementById(`square-${players[playerIndex].position}`).appendChild(token);
+                updateGameInfo();
+            }
+        }
+
+
+        /**
+         * Pasa el turno al siguiente jugador.
+         */
+        function nextTurn() {
+            hideModal(); // Asegurarse de que el modal esté oculto
+
+            // Si el jugador que acaba de terminar su turno era Hem y estaba bloqueado
+            if (hemBlockedPlayerIndex !== -1 && currentTurn === hemBlockedPlayerIndex) {
+                // Si Hem sigue bloqueado, su turno se pierde y se le pedirá ayuda de nuevo en su siguiente turno
+                // Aquí simplemente pasamos al siguiente jugador, y la lógica de Hem se activará
+                // cuando sea su turno de nuevo en handleSquare si cae en Hem.
+                // Sin embargo, si acaba de fallar la ayuda de otro jugador,
+                // la pregunta de ayuda se mostrará de nuevo en su *propio* turno.
+                // Para manejar esto, el siguiente turno lo toma el siguiente jugador,
+                // pero si Hem sigue bloqueado, en su próximo turno se le presentará la opción de ayuda.
+                // (La lógica actual ya lo maneja al volver a caer en 'challenge' para Hem).
+            }
+
+            // Si el jugador actual es Hem y está bloqueado, su turno se "pierde" y pasa al siguiente.
+            // La condición de bloqueado para Hem se maneja cuando es su turno y cae en la casilla Hem.
+            // Si hemBlockedPlayerIndex es diferente de -1, significa que un Hem está esperando ayuda.
+            // El `nextTurn` siempre avanza el turno al siguiente jugador.
+            // La lógica para la "ayuda" de Hem se dispara cuando `currentTurn` es `hemBlockedPlayerIndex`
+            // y cae en una casilla de desafío (tipo Hem).
+
+            currentTurn = (currentTurn + 1) % players.length; // Siguiente jugador
+            updateGameInfo();
+            rollDiceBtn.disabled = false; // Habilitar el botón para el nuevo turno
+        }
+
+        /**
+         * Crea y anima piezas de confeti para el efecto de victoria.
+         */
+        function createConfettiPiece() {
+            const confetti = document.createElement('div');
+            confetti.style.position = 'fixed';
+            confetti.style.width = `${Math.random() * 10 + 5}px`; /* Tamaño aleatorio */
+            confetti.style.height = `${Math.random() * 10 + 5}px`;
+            confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`; /* Color aleatorio */
+            confetti.style.borderRadius = '50%';
+            confetti.style.left = `${Math.random() * 100}vw`;
+            confetti.style.top = `${-20}px`; // Inicia por encima de la pantalla
+            confetti.style.zIndex = '9999'; // En la capa más alta
+            confetti.style.opacity = '0'; // Empieza oculto
+
+            // Posiciones finales aleatorias para un efecto de caída
+            const endLeft = Math.random() * 100;
+            const endTop = 100; // Cae hasta la parte inferior de la pantalla
+
+            // Rotación aleatoria
+            const rotation = Math.random() * 720;
+
+            // Aplica la animación usando la API Web Animations
+            confetti.animate([
+                { transform: `translateY(0) rotate(0deg)`, opacity: 0 },
+                { transform: `translateY(${Math.random() * 50 - 25}vh) rotate(${Math.random() * 360}deg)`, opacity: 1, offset: 0.2 },
+                { transform: `translateY(${endTop}vh) translateX(${endLeft - parseFloat(confetti.style.left)}vw) rotate(${rotation}deg)`, opacity: 0 }
+            ], {
+                duration: Math.random() * 2000 + 1500, // Duración de 1.5 a 3.5 segundos
+                iterations: 1,
+                easing: 'ease-out',
+                delay: Math.random() * 500 // Retraso para que aparezcan escalonadamente
+            });
+
+            document.body.appendChild(confetti);
+
+            // Elimina la pieza de confeti después de que termine su animación
+            setTimeout(() => confetti.remove(), 4000);
+        }
+
+        /**
+         * Activa el efecto de confeti de victoria.
+         */
+        function triggerVictoryEffect() {
+            for (let i = 0; i < 50; i++) { // Genera 50 piezas de confeti
+                createConfettiPiece();
+            }
+            playSound('victory'); // Añadir efecto de sonido de victoria
+        }
+
+
+        // Event Listeners
+        rollDiceBtn.addEventListener('click', rollDice);
+        modalCloseBtn.addEventListener('click', hideModal);
+        nextTurnBtn.addEventListener('click', nextTurn);
+
+        // Inicializar el juego al cargar la página
+        window.onload = initializeGame;
+
+    </script>
+</body>
+</html>
